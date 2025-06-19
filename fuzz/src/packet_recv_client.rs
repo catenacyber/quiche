@@ -22,7 +22,7 @@ fuzz_target!(|data: &[u8]| {
 
     LOG_INIT.call_once(|| env_logger::builder().format_timestamp_nanos().init());
 
-    let mut buf = data.to_vec();
+    let packets = data.split(|c| *c == 99);
 
     let config = CONFIG.get_or_init(|| {
         let mut config = quiche::Config::new(quiche::PROTOCOL_VERSION).unwrap();
@@ -55,8 +55,11 @@ fuzz_target!(|data: &[u8]| {
 
     let info = quiche::RecvInfo { from, to };
 
-    conn.recv(&mut buf, info).ok();
+    for pkt in packets {
+        let mut buf = pkt.to_vec();
+        conn.recv(&mut buf, info).ok();
 
-    let mut out_buf = [0; 1500];
-    while conn.send(&mut out_buf).is_ok() {}
+        let mut out_buf = [0; 1500];
+        while conn.send(&mut out_buf).is_ok() {}
+    }
 });
