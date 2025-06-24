@@ -101,10 +101,18 @@ fuzz_target!(|data: &[u8]| {
                         let mut headers = list.into_iter();
                         // Look for the request's method.
                         let method =
-                            headers.find(|h| h.name() == b":method").unwrap();
+                            headers.find(|h| h.name() == b":method");
+                        if method.is_none() {
+                            break;
+                        }
+                        let method = method.unwrap();
                         // Look for the request's path.
                         let path =
-                            headers.find(|h| h.name() == b":path").unwrap();
+                            headers.find(|h| h.name() == b":path");
+                        if path.is_none() {
+                            break;
+                        }
+                        let path = path.unwrap();
                         if method.value() == b"GET" && path.value() == b"/" {
                             let _resp = vec![
                                 quiche::h3::Header::new(
