@@ -56,7 +56,24 @@ fuzz_target!(|data: &[u8]| {
         quiche::accept(&SCID, None, to, from, &mut config.lock().unwrap())
             .unwrap();
 
+    let mut connc = quiche::connect(
+        Some("quic.tech"),
+        &SCID,
+        from,
+        to,
+        &mut config.lock().unwrap(),
+    )
+    .unwrap();
+
     let info = quiche::RecvInfo { from, to };
+
+    while !conn.is_established() {
+        let flight = quiche::testing::emit_flight(&mut connc).unwrap();
+        quiche::testing::process_flight(&mut conn, flight).unwrap();
+
+        let flight = quiche::testing::emit_flight(&mut conn).unwrap();
+        quiche::testing::process_flight(&mut connc, flight).unwrap();
+    }
 
     let h3_config = quiche::h3::Config::new().unwrap();
     let mut h3_conn = None;
@@ -69,7 +86,6 @@ fuzz_target!(|data: &[u8]| {
                 quiche::h3::Connection::with_transport(&mut conn, &h3_config)
                     .unwrap(),
             );
-            println!("lol");
         }
         if h3_conn.is_some() {
             let h3c = h3_conn.as_mut().unwrap();
@@ -119,7 +135,6 @@ fuzz_target!(|data: &[u8]| {
 
                     Err(_e) => {
                         // An error occurred, handle it.
-                        println!("lole {:?}", _e);
                         break;
                     },
                 }
