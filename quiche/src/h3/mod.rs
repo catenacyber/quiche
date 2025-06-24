@@ -7353,10 +7353,11 @@ mod tests {
 
 #[cfg(feature = "ffi")]
 mod ffi;
-#[cfg(feature = "internal")]
+#[cfg(any(feature = "internal", feature = "fuzzing"))]
 #[doc(hidden)]
 pub mod frame;
 #[cfg(not(feature = "internal"))]
+#[cfg(not(feature = "fuzzing"))]
 mod frame;
 #[doc(hidden)]
 pub mod qpack;

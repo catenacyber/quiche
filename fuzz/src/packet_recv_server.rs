@@ -9,6 +9,8 @@ use std::sync::Mutex;
 use std::sync::Once;
 use std::sync::OnceLock;
 
+use quiche::h3::NameValue;
+
 static CONFIG: OnceLock<Mutex<quiche::Config>> = OnceLock::new();
 
 static SCID: quiche::ConnectionId<'static> =
@@ -56,10 +58,73 @@ fuzz_target!(|data: &[u8]| {
 
     let info = quiche::RecvInfo { from, to };
 
+    let h3_config = quiche::h3::Config::new().unwrap();
+    let mut h3_conn = None;
     for pkt in packets {
         let mut buf = pkt.to_vec();
         conn.recv(&mut buf, info).ok();
+        if (conn.is_in_early_data() || conn.is_established()) && h3_conn.is_none()
+        {
+            h3_conn = Some(
+                quiche::h3::Connection::with_transport(&mut conn, &h3_config)
+                    .unwrap(),
+            );
+            println!("lol");
+        }
+        if h3_conn.is_some() {
+            let h3c = h3_conn.as_mut().unwrap();
+            loop {
+                match h3c.poll(&mut conn) {
+                    Ok((
+                        _stream_id,
+                        quiche::h3::Event::Headers {
+                            list,
+                            more_frames: _,
+                        },
+                    )) => {
+                        let mut headers = list.into_iter();
+                        // Look for the request's method.
+                        let method =
+                            headers.find(|h| h.name() == b":method").unwrap();
+                        // Look for the request's path.
+                        let path =
+                            headers.find(|h| h.name() == b":path").unwrap();
+                        if method.value() == b"GET" && path.value() == b"/" {
+                            let _resp = vec![
+                                quiche::h3::Header::new(
+                                    b":status",
+                                    200.to_string().as_bytes(),
+                                ),
+                                quiche::h3::Header::new(b"server", b"quiche"),
+                            ];
+                        }
+                    },
 
+                    Ok((_stream_id, quiche::h3::Event::Data)) => {},
+
+                    Ok((_stream_id, quiche::h3::Event::Finished)) => {},
+
+                    Ok((_stream_id, quiche::h3::Event::Reset(_err))) => {},
+
+                    Ok((_flow_id, quiche::h3::Event::PriorityUpdate)) => {},
+
+                    Ok((_goaway_id, quiche::h3::Event::GoAway)) => {
+                        // Peer signalled it is going away, handle it.
+                    },
+
+                    Err(quiche::h3::Error::Done) => {
+                        // Done reading.
+                        break;
+                    },
+
+                    Err(_e) => {
+                        // An error occurred, handle it.
+                        println!("lole {:?}", _e);
+                        break;
+                    },
+                }
+            }
+        }
         let mut out_buf = [0; 1500];
         while conn.send(&mut out_buf).is_ok() {}
     }
