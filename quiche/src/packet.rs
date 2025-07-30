@@ -116,6 +116,9 @@ where
     }
 }
 
+use arbitrary::Arbitrary;
+
+#[derive(Arbitrary)]
 /// QUIC packet type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {

@@ -9,6 +9,8 @@ use std::sync::Mutex;
 use std::sync::Once;
 use std::sync::OnceLock;
 
+use arbitrary::Arbitrary;
+
 static CONFIG: OnceLock<Mutex<quiche::Config>> = OnceLock::new();
 
 static SCID: quiche::ConnectionId<'static> =
@@ -20,7 +22,13 @@ extern "C" {
     fn RAND_reset_for_fuzzing();
 }
 
-fuzz_target!(|data: &[u8]| {
+#[derive(Arbitrary, Debug)]
+struct OnePktToEncode {
+    pkt_type: quiche::Type,
+    frames: Vec<quiche::frame::Frame>,
+}
+
+fuzz_target!(|data: OnePktToEncode| {
     unsafe {
         RAND_reset_for_fuzzing();
     }
@@ -28,8 +36,6 @@ fuzz_target!(|data: &[u8]| {
     let to: SocketAddr = "127.0.0.1:4321".parse().unwrap();
 
     LOG_INIT.call_once(|| env_logger::builder().format_timestamp_nanos().init());
-
-    let packets = quiche_fuzz::PktsData { data };
 
     let config = CONFIG.get_or_init(|| {
         let crt_path = std::env::var("QUICHE_FUZZ_CRT")
@@ -80,7 +86,22 @@ fuzz_target!(|data: &[u8]| {
         quiche::test_utils::process_flight(&mut connc, flight).unwrap();
     }
     let mut h3_conn = None;
-    for pkt in packets.iter() {
-        quiche_fuzz::server_process(pkt, &mut conn, &mut h3_conn, info);
+    let mut buf = [0; 65535];
+    if let Ok(written) = quiche::test_utils::encode_pkt(
+        &mut connc,
+        data.pkt_type,
+        &data.frames,
+        &mut buf,
+    ) {
+        quiche_fuzz::server_process(
+            &buf[..written],
+            &mut conn,
+            &mut h3_conn,
+            info,
+        );
     }
+    // let packets = quiche_fuzz::PktsData { data };
+    // for pkt in packets.iter() {
+    // quiche_fuzz::server_process(pkt, &mut conn, &mut h3_conn, info);
+    // }
 });

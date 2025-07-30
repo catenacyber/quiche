@@ -38,10 +38,19 @@ const MAX_INLINE_CAPACITY: usize = 4;
 const MIN_TO_INLINE: usize = 2;
 
 /// A sorted collection of non overlapping [`u64`] ranges
+use arbitrary::Arbitrary;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd)]
 pub enum RangeSet {
     Inline(InlineRangeSet),
     BTree(BTreeRangeSet),
+}
+
+impl<'a> Arbitrary<'a> for RangeSet {
+    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        let r = InlineRangeSet::arbitrary(u)?;
+        return Ok(RangeSet::Inline(r));
+    }
 }
 
 /// A [`RangeSet`] variant backed by a [`SmallVec`] that is capable of storing
@@ -50,6 +59,27 @@ pub enum RangeSet {
 pub struct InlineRangeSet {
     inner: SmallVec<[(u64, u64); MAX_INLINE_CAPACITY]>,
     capacity: usize,
+}
+
+impl<'a> Arbitrary<'a> for InlineRangeSet {
+    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        let r = Vec::<(u64, u64)>::arbitrary(u)?;
+        if r.is_empty() {
+            return Err(arbitrary::Error::IncorrectFormat);
+        }
+        let mut is = InlineRangeSet {
+            inner: SmallVec::new(),
+            capacity: r.len(),
+        };
+        for (s, e) in &r {
+            if (s & 0x3fffffffffffffff) >= (e & 0x3fffffffffffffff) {
+                return Err(arbitrary::Error::IncorrectFormat);
+            }
+            is.insert((s & 0x3fffffffffffffff)..(e & 0x3fffffffffffffff));
+        }
+
+        Ok(is)
+    }
 }
 
 /// A [`RangeSet`] variant backed by a [`BTreeMap`] that is capable of storing

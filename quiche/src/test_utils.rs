@@ -439,6 +439,9 @@ pub fn encode_pkt(
     let payload_len = frames.iter().fold(0, |acc, x| acc + x.wire_len());
 
     if pkt_type != Type::Short {
+        #[cfg(feature = "fuzzing")]
+        let len = pn_len + payload_len;
+        #[cfg(not(feature = "fuzzing"))]
         let len = pn_len + payload_len + crypto_ctx.crypto_overhead().unwrap();
         b.put_varint(len as u64)?;
     }

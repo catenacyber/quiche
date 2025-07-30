@@ -74,6 +74,17 @@ where
     _bf: PhantomData<F>,
 }
 
+use arbitrary::Arbitrary;
+impl<'a> Arbitrary<'a> for RangeBuf {
+    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        let d = Vec::<u8>::arbitrary(u)?;
+        let off = u64::arbitrary(u)?;
+        let fin = bool::arbitrary(u)?;
+
+        Ok(RangeBuf::from(&d, off & 0x3fffffffffffffff, fin))
+    }
+}
+
 /// A trait for providing internal storage buffers for `RangeBuf`.
 /// The associated type `Buf` can be any type that dereferences to
 /// a slice, but should be fast to clone, eg. by wrapping it with an

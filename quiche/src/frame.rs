@@ -47,16 +47,24 @@ pub const MAX_DGRAM_OVERHEAD: usize = 2;
 pub const MAX_STREAM_OVERHEAD: usize = 12;
 pub const MAX_STREAM_SIZE: u64 = 1 << 62;
 
+#[derive(Arbitrary)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EcnCounts {
+    #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
     ect0_count: u64,
+    #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
     ect1_count: u64,
+    #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
     ecn_ce_count: u64,
 }
 
+use arbitrary::Arbitrary;
+
+#[derive(Arbitrary)]
 #[derive(Clone, PartialEq, Eq)]
 pub enum Frame {
     Padding {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=1024))]
         len: usize,
     },
 
@@ -70,19 +78,25 @@ pub enum Frame {
     },
 
     ACK {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         ack_delay: u64,
         ranges: ranges::RangeSet,
         ecn_counts: Option<EcnCounts>,
     },
 
     ResetStream {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         stream_id: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         error_code: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         final_size: u64,
     },
 
     StopSending {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         stream_id: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         error_code: u64,
     },
 
@@ -91,7 +105,9 @@ pub enum Frame {
     },
 
     CryptoHeader {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         offset: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=131072))]
         length: usize,
     },
 
@@ -100,59 +116,76 @@ pub enum Frame {
     },
 
     Stream {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         stream_id: u64,
         data: RangeBuf,
     },
 
     StreamHeader {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         stream_id: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         offset: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=131072))]
         length: usize,
         fin: bool,
     },
 
     MaxData {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         max: u64,
     },
 
     MaxStreamData {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         stream_id: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         max: u64,
     },
 
     MaxStreamsBidi {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         max: u64,
     },
 
     MaxStreamsUni {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         max: u64,
     },
 
     DataBlocked {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         limit: u64,
     },
 
     StreamDataBlocked {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         stream_id: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         limit: u64,
     },
 
     StreamsBlockedBidi {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         limit: u64,
     },
 
     StreamsBlockedUni {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         limit: u64,
     },
 
     NewConnectionId {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         seq_num: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         retire_prior_to: u64,
         conn_id: Vec<u8>,
         reset_token: [u8; 16],
     },
 
     RetireConnectionId {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         seq_num: u64,
     },
 
@@ -165,12 +198,15 @@ pub enum Frame {
     },
 
     ConnectionClose {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         error_code: u64,
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         frame_type: u64,
         reason: Vec<u8>,
     },
 
     ApplicationClose {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=0x3fffffffffffffff))]
         error_code: u64,
         reason: Vec<u8>,
     },
@@ -182,6 +218,7 @@ pub enum Frame {
     },
 
     DatagramHeader {
+        #[arbitrary(with = |u: &mut arbitrary::Unstructured| u.int_in_range(0..=2048))]
         length: usize,
     },
 }
@@ -1108,7 +1145,7 @@ impl std::fmt::Debug for Frame {
             } => {
                 write!(
                     f,
-                    "STREAM id={stream_id} off={offset} len={length} fin={fin}"
+                    "STREAMH id={stream_id} off={offset} len={length} fin={fin}"
                 )?;
             },
 

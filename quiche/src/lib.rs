@@ -9377,7 +9377,8 @@ mod dgram;
 #[cfg(feature = "ffi")]
 mod ffi;
 mod flowcontrol;
-mod frame;
+#[allow(missing_docs)]
+pub mod frame;
 pub mod h3;
 mod minmax;
 mod packet;
