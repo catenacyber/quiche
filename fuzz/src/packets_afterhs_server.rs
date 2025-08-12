@@ -28,7 +28,7 @@ struct OnePktToEncode {
     frames: Vec<quiche::frame::Frame>,
 }
 
-fuzz_target!(|data: OnePktToEncode| {
+fuzz_target!(|data: Vec<OnePktToEncode>| {
     unsafe {
         RAND_reset_for_fuzzing();
     }
@@ -87,18 +87,20 @@ fuzz_target!(|data: OnePktToEncode| {
     }
     let mut h3_conn = None;
     let mut buf = [0; 65535];
-    if let Ok(written) = quiche::test_utils::encode_pkt(
-        &mut connc,
-        data.pkt_type,
-        &data.frames,
-        &mut buf,
-    ) {
-        quiche_fuzz::server_process(
-            &buf[..written],
-            &mut conn,
-            &mut h3_conn,
-            info,
-        );
+    for pkt in data.iter() {
+        if let Ok(written) = quiche::test_utils::encode_pkt(
+            &mut connc,
+            pkt.pkt_type,
+            &pkt.frames,
+            &mut buf,
+        ) {
+            quiche_fuzz::server_process(
+                &buf[..written],
+                &mut conn,
+                &mut h3_conn,
+                info,
+            );
+        }
     }
     // let packets = quiche_fuzz::PktsData { data };
     // for pkt in packets.iter() {
